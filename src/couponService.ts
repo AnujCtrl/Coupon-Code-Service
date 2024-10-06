@@ -37,43 +37,54 @@ export class CouponCodeService {
     this.printCouponStatus(code);
   }
 
-  verifyCoupon(code: string, userId?: string): boolean {
-    const coupon = this.coupons[code];
-    if (!coupon) return false;
+  verifyCoupon(code: string, userId?: string): { isValid: boolean; statusCode: number; message: string } {
+    if (!this.coupons[code]) {
+      return { isValid: false, statusCode: 404, message: "Coupon not found" };
+    }
 
-    const globalConfig = coupon.repeatCountConfigs.find(
-      (config) => config.countType === RepeatCountType.GLOBAL_TOTAL
-    );
-    if (globalConfig && coupon.usageCount >= globalConfig.limit) {
-      return false;
+    const coupon = this.coupons[code];
+
+
+    // Check global usage limit
+    const globalLimitConfig = coupon.repeatCountConfigs.find(config => config.countType === RepeatCountType.GLOBAL_TOTAL);
+    if (globalLimitConfig && coupon.usageCount >= globalLimitConfig.limit) {
+      return { isValid: false, statusCode: 400, message: "Coupon global usage limit reached" };
     }
 
     if (userId) {
-      const userUsage = coupon.userUsage[userId] || {};
-      for (const config of coupon.repeatCountConfigs) {
-        switch (config.countType) {
-          case RepeatCountType.USER_TOTAL:
-            if ((userUsage.total || 0) >= config.limit) return false;
-            break;
-          case RepeatCountType.USER_DAILY:
-            const today = new Date().toISOString().split("T")[0];
-            if ((userUsage[today] || 0) >= config.limit) return false;
-            break;
-          case RepeatCountType.USER_WEEKLY:
-            const thisWeek = this.getWeekNumber(new Date());
-            if ((userUsage[`week_${thisWeek}`] || 0) >= config.limit)
-              return false;
-            break;
+      const userUsage = coupon.userUsage[userId] || { total: 0 };
+
+      // Check user total limit
+      const userTotalLimitConfig = coupon.repeatCountConfigs.find(config => config.countType === RepeatCountType.USER_TOTAL);
+      if (userTotalLimitConfig && userUsage.total >= userTotalLimitConfig.limit) {
+        return { isValid: false, statusCode: 400, message: "User has reached the total usage limit for this coupon" };
+      }
+
+      // Check user daily limit
+      const userDailyLimitConfig = coupon.repeatCountConfigs.find(config => config.countType === RepeatCountType.USER_DAILY);
+      if (userDailyLimitConfig) {
+        const today = new Date().toISOString().split('T')[0];
+        if ((userUsage[today] || 0) >= userDailyLimitConfig.limit) {
+          return { isValid: false, statusCode: 400, message: "User has reached the daily usage limit for this coupon" };
+        }
+      }
+
+      // Check user weekly limit
+      const userWeeklyLimitConfig = coupon.repeatCountConfigs.find(config => config.countType === RepeatCountType.USER_WEEKLY);
+      if (userWeeklyLimitConfig) {
+        const thisWeek = `week_${this.getWeekNumber(new Date())}`;
+        if ((userUsage[thisWeek] || 0) >= userWeeklyLimitConfig.limit) {
+          return { isValid: false, statusCode: 400, message: "User has reached the weekly usage limit for this coupon" };
         }
       }
     }
-    console.log("pass", code, userId);
 
-    return true;
+    return { isValid: true, statusCode: 200, message: "Coupon is valid" };
   }
 
   applyCoupon(code: string, userId?: string): boolean {
-    if (!this.verifyCoupon(code, userId)) return false;
+    const verificationResult = this.verifyCoupon(code, userId);
+    if (!verificationResult.isValid) return false;
 
     const coupon = this.coupons[code];
     coupon.usageCount++;
@@ -88,8 +99,8 @@ export class CouponCodeService {
       const today = new Date().toISOString().split("T")[0];
       userUsage[today] = (userUsage[today] || 0) + 1;
 
-      const thisWeek = this.getWeekNumber(new Date());
-      userUsage[`week_${thisWeek}`] = (userUsage[`week_${thisWeek}`] || 0) + 1;
+      const thisWeek = `week_${this.getWeekNumber(new Date())}`;
+      userUsage[thisWeek] = (userUsage[thisWeek] || 0) + 1;
     }
 
     this.printCouponStatus(code);

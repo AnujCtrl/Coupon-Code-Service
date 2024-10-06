@@ -24,23 +24,40 @@ app.post("/coupons", (req, res) => {
 });
 
 app.get("/coupons/:code/verify", (req, res) => {
-  const { code } = req.params;
-  const { userId } = req.query;
-  const isValid = couponService.verifyCoupon(
-    code,
-    userId as string | undefined
-  );
-  res.json({ isValid });
+  try {
+    const { code } = req.params;
+    const { userId } = req.query;
+    const result = couponService.verifyCoupon(code, userId as string | undefined);
+    
+    res.status(result.statusCode).json({
+      isValid: result.isValid,
+      message: result.message
+    });
+  } catch (error) {
+    console.error("Error verifying coupon:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 app.post("/coupons/:code/apply", (req, res) => {
-  const { code } = req.params;
-  const { userId } = req.query;
-  const applied = couponService.applyCoupon(code, userId as string | undefined);
-  if (applied) {
-    res.json({ message: "Coupon applied successfully" });
-  } else {
-    res.status(400).json({ error: "Unable to apply coupon" });
+  try {
+    const { code } = req.params;
+    const { userId } = req.query;
+    const result = couponService.verifyCoupon(code, userId as string | undefined);
+
+    if (result.isValid) {
+      const applied = couponService.applyCoupon(code, userId as string | undefined);
+      if (applied) {
+        res.json({ message: "Coupon applied successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to apply coupon" });
+      }
+    } else {
+      res.status(result.statusCode).json({ error: result.message });
+    }
+  } catch (error) {
+    console.error("Error applying coupon:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

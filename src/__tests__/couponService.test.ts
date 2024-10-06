@@ -29,16 +29,65 @@ describe("CouponCodeService", () => {
       service.addCoupon("TEST123");
     });
 
-    it("should return true for a valid coupon", () => {
-      expect(service.verifyCoupon("TEST123")).toBe(true);
+    it("should return valid result for a valid coupon", () => {
+      const result = service.verifyCoupon("TEST123");
+      expect(result).toEqual({
+        isValid: true,
+        statusCode: 200,
+        message: "Coupon is valid",
+      });
     });
 
-    it("should return false for an invalid coupon", () => {
-      expect(service.verifyCoupon("INVALID")).toBe(false);
+    it("should return invalid result for a non-existent coupon", () => {
+      const result = service.verifyCoupon("INVALID");
+      expect(result).toEqual({
+        isValid: false,
+        statusCode: 404,
+        message: "Coupon not found",
+      });
     });
 
-    it("should return true for a valid coupon with user", () => {
-      expect(service.verifyCoupon("TEST123", "user1")).toBe(true);
+    it("should return valid result for a valid coupon with user", () => {
+      const result = service.verifyCoupon("TEST123", "user1");
+      expect(result).toEqual({
+        isValid: true,
+        statusCode: 200,
+        message: "Coupon is valid",
+      });
+    });
+
+    it("should return invalid result when global limit is reached", () => {
+      for (let i = 0; i < 10; i++) {
+        service.applyCoupon("TEST123", `user${i}`);
+      }
+      const result = service.verifyCoupon("TEST123", "user11");
+      expect(result).toEqual({
+        isValid: false,
+        statusCode: 400,
+        message: "Coupon global usage limit reached",
+      });
+    });
+
+    it("should return invalid result when user total limit is reached", () => {
+      for (let i = 0; i < 3; i++) {
+        service.applyCoupon("TEST123", "user1");
+      }
+      const result = service.verifyCoupon("TEST123", "user1");
+      expect(result).toEqual({
+        isValid: false,
+        statusCode: 400,
+        message: "User has reached the total usage limit for this coupon",
+      });
+    });
+
+    it("should return invalid result when user daily limit is reached", () => {
+      service.applyCoupon("TEST123", "user1");
+      const result = service.verifyCoupon("TEST123", "user1");
+      expect(result).toEqual({
+        isValid: false,
+        statusCode: 400,
+        message: "User has reached the daily usage limit for this coupon",
+      });
     });
   });
 
@@ -64,9 +113,9 @@ describe("CouponCodeService", () => {
 
     it("should respect user total limit", () => {
       for (let i = 0; i < 3; i++) {
-        expect(service.applyCoupon("TEST123", "user21")).toBe(true);
+        expect(service.applyCoupon("TEST123", "user1")).toBe(true);
       }
-      expect(service.applyCoupon("TEST123", "user21")).toBe(false);
+      expect(service.applyCoupon("TEST123", "user1")).toBe(false);
     });
 
     it("should respect user daily limit", () => {
