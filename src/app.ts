@@ -15,7 +15,11 @@ app.post("/coupons", (req, res) => {
     couponService.addCoupon(code);
     res.status(201).json({ message: "Coupon added successfully" });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
   }
 });
 

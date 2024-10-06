@@ -67,6 +67,7 @@ export class CouponCodeService {
         }
       }
     }
+    console.log("pass", code, userId);
 
     return true;
   }
@@ -75,7 +76,7 @@ export class CouponCodeService {
     if (!this.verifyCoupon(code, userId)) return false;
 
     const coupon = this.coupons[code];
-    coupon.usageCount++; 
+    coupon.usageCount++;
 
     if (userId) {
       if (!coupon.userUsage[userId]) {
