@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This project is for interview purpose, I was asked to implements a Coupon Code Service that allows for the creation, verification, and application of coupon codes with various usage limits. The service is built using TypeScript and Express.js, providing a RESTful API for coupon management.
+This project is for interview purposes. I was asked to implement a Coupon Code Service that allows for the creation, verification, and application of coupon codes with various usage limits. The service is built using TypeScript and Express.js, providing a RESTful API for coupon management.
 
 ## Thought Process
 
@@ -12,18 +12,18 @@ This project is for interview purpose, I was asked to implements a Coupon Code S
    - User daily: The number of times a user can use a coupon per day
    - User weekly: The number of times a user can use a coupon per week
   
-2. **Coupon Structure**: Even though I was asked to send the config in the request, I decided to have it as environment variables with default values(I hope i did not break their test setup). Each coupon has:
+2. **Coupon Structure**: Even though I was asked to send the config in the request, I decided to have it as environment variables with default values (I hope I did not break their test setup). Each coupon has:
    - A unique code
    - Multiple repeat count configurations (global total, user total, user daily, and user weekly)
    - A global usage count
    - User-specific usage tracking
 
-3. **Verification Logic**: The `verifyCoupon` method checks all applicable limits before allowing a coupon to be used. This ensures that no limit is exceeded when applying a coupon.I decided to make this get request because it is a read-only operation and does not modify the state of the system.
+3. **Verification Logic**: The `verifyCoupon` method checks all applicable limits before allowing a coupon to be used. This ensures that no limit is exceeded when applying a coupon. I decided to make this a GET request because it is a read-only operation and does not modify the state of the system.
 
-4. **Application Logic**: The `applyCoupon` method first verifies the coupon and then updates the usage counts if the coupon is valid and can be applied. For daily and weekly limits, I implemented methods to calculate the current day and week number. This allows for automatic resetting of these limits when a new day or week starts. I decided to make `applyCoupon` and `addCoupon` post request because they modify the state of the system and might need to be awaited in a real-world scenario.
+4. **Application Logic**: The `applyCoupon` method first verifies the coupon and then updates the usage counts if the coupon is valid and can be applied. For daily and weekly limits, I implemented methods to calculate the current day and week number. This allows for automatic resetting of these limits when a new day or week starts. I decided to make `applyCoupon` and `addCoupon` POST requests because they modify the state of the system and might need to be awaited in a real-world scenario.
 
-5. **Testing**: I created comprehensive unit tests of all coupon service methods, Not including edge cases and complex scenarios because of time constraint as well as lack of persistance data storage layer it breaks with edge cases.
-   1. Currently 2 tests fail, I have kept then to show the limitation of my current testing approach.user total limit tests fail because its always more than daily limit. I have to mock the date to make it pass. Done that for weekly limit, but left it as is for daily to show that I have considered it.
+5. **Testing**: I created comprehensive unit tests for all coupon service methods, not including edge cases and complex scenarios due to time constraints and the lack of a persistent data storage layer, which breaks with edge cases.
+   1. Currently, 2 tests fail. I have kept them to show the limitation of my current testing approach. The user total limit tests fail because it's always more than the daily limit. I have to mock the date to make it pass. I've done that for the weekly limit but left it as is for the daily limit to show that I have considered it.
 
 ## Assumptions
 
@@ -37,7 +37,7 @@ This project is for interview purpose, I was asked to implements a Coupon Code S
 
 5. **Concurrency**: The current implementation doesn't handle concurrent requests. In a high-traffic production environment, they might want to use Redis to handle concurrent requests.
 
-6. **Error Handling**: Basic error handling was implemented first, but I was asked to implement more robust error handling and logging. So now the api returns the reason for rejection.
+6. **Error Handling**: Basic error handling was implemented first, but I was asked to implement more robust error handling and logging. So now the API returns the reason for rejection.
 
 ## API Endpoints
 
@@ -63,16 +63,15 @@ This project is for interview purpose, I was asked to implements a Coupon Code S
 
 ## Example Usage
 
-
 ```bash
-#Add a coupon
+# Add a coupon
 curl -X POST http://localhost:3000/coupons \
 -H "Content-Type: application/json" \
 -d '{"code":"SUMMER2023"}'
 
-#Verify a coupon
+# Verify a coupon
 curl http://localhost:3000/coupons/SUMMER2023/verify?userId=user123
 
-#Apply a coupon
+# Apply a coupon
 curl -X POST http://localhost:3000/coupons/SUMMER2023/apply?userId=user123
 ```
